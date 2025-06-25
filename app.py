@@ -32,9 +32,9 @@ else:
 
 # ---------- 3. Basic cleaning ----------
 df = df_raw.copy()
-#if "timestamp" not in df.columns:
-   # st.error("First column must be named **timestamp**.")
-  #  st.stop()
+if "timestamp" not in df.columns:
+    st.error("First column must be named **timestamp**.")
+    st.stop()
 
 # Convert a m:ss.s style timestamp → seconds (float) so we can plot on numeric axis if desired
 def to_seconds(ts):
