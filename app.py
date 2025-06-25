@@ -53,7 +53,28 @@ else:
     df_raw = pd.read_csv(uploaded, sep=r"\s+", engine="python")  # whitespace / auto
 
 df_grp = df_raw.copy()
-# ---------- 3. Choose axes & build multi-trace plot (no annotations) ---------
+
+
+# ---------- 3. Basic cleaning ----------
+df = df_raw.copy()
+st.write("Detected columns:", df_raw.columns.tolist())
+
+if "timestamp" not in df.columns:
+    st.error("First column must be named **timestamp**.")
+    st.stop()
+
+Convert a m:ss.s style timestamp → seconds (float) so we can plot on numeric axis if desired
+def to_seconds(ts):
+    try:
+        m, s = ts.split(":")
+        return float(m) * 60 + float(s)
+    except Exception:
+        return np.nan
+
+if "timestamp_s" not in df.columns:
+    df["timestamp_s"] = df["timestamp"].astype(str).apply(to_seconds)
+
+#---------- 3. Choose axes & build multi-trace plot (no annotations) ---------
 import plotly.graph_objects as go
 
 # X-axis choice
@@ -104,24 +125,6 @@ st.plotly_chart(fig, use_container_width=True)
 
 
 
-# ---------- 3. Basic cleaning ----------
-#df = df_raw.copy()
-#st.write("Detected columns:", df_raw.columns.tolist())
-
-#if "timestamp" not in df.columns:
-    #st.error("First column must be named **timestamp**.")
-    #st.stop()
-
-# Convert a m:ss.s style timestamp → seconds (float) so we can plot on numeric axis if desired
-#def to_seconds(ts):
-    #try:
-        #m, s = ts.split(":")
-        #return float(m) * 60 + float(s)
-    #except Exception:
-        #return np.nan
-
-#if "timestamp_s" not in df.columns:
-    #df["timestamp_s"] = df["timestamp"].astype(str).apply(to_seconds)
 
 # ---------- 4. Grouping / aggregation ----------
 #st.sidebar.header("🗂 Segmentation")
