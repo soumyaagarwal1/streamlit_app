@@ -32,6 +32,8 @@ else:
 
 # ---------- 3. Basic cleaning ----------
 df = df_raw.copy()
+st.write("Detected columns:", df_raw.columns.tolist())
+
 if "timestamp" not in df.columns:
     st.error("First column must be named **timestamp**.")
     st.stop()
