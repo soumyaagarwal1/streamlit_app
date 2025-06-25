@@ -1,110 +1,101 @@
-# -----------------------------------------------------------
-# app.py  •  Upload → group/aggregate → click-annotate → export
-# -----------------------------------------------------------
+# app.py  –  Minimal dark-theme multi-trace dashboard (no annotations)
+
 import streamlit as st
-import io
 import pandas as pd
-import numpy as np
-import plotly.express as px
-from io import StringIO
-from streamlit_plotly_events import plotly_events   # pip install streamlit-plotly-events
+import plotly.graph_objects as go
+import io
 
-st.set_page_config(page_title="Sensor Annotator", layout="wide")
-st.title("📈 Click-Annotate Sensor Dashboard")
-
-# ---------- 1. Upload ----------
-uploaded = st.file_uploader(
-    "Upload your sensor file (CSV or TSV – first col must be 'timestamp')",
-    type=["csv", "tsv", "txt"]
+st.set_page_config(
+    page_title="Sensor Dashboard",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
-delimiter = st.sidebar.radio("Delimiter", {",": "Comma (,)", "\t": "Tab (\\t)", "auto": "Auto/Whitespace"}, index=1)
 
-#up = st.file_uploader("Upload CSV", type=["csv"])
+st.title("📈 Sensor Time-Series Dashboard")
 
-if uploaded:
-    try:
-        stringio = io.StringIO(uploaded.getvalue().decode("utf-8"))
-        df_raw = pd.read_csv(stringio, sep=",")
-        df_raw.columns = df_raw.columns.str.strip()
-        st.success("✅ File uploaded and parsed successfully.")
-        st.write(df_raw.head())
-    except Exception as e:
-        st.error(f"❌ Could not read file: {e}")
-        st.stop()
-
-
-#if uploaded:
-    #df_raw = pd.read_csv(uploaded, sep=",")         # ✅ enforce comma-split
-    #df_raw.columns = df_raw.columns.str.strip()  # ✅ clean col names
-    #st.write("Detected columns:", df_raw.columns.tolist())
-    #st.write(df_raw.head(1))                  # optional preview
-
-
+# --------------------------------------------------
+# 1. Upload CSV (comma-separated)
+# --------------------------------------------------
+uploaded = st.file_uploader("Upload CSV file", type=["csv"])
 if not uploaded:
-    st.info("👈 Upload a file to get started")
+    st.info("⬆️  Upload a CSV to get started.")
     st.stop()
 
-# ---------- 2. Read ----------
-if delimiter == ",":
-    df_raw = pd.read_csv(uploaded)
-elif delimiter == "\t":
-    df_raw = pd.read_csv(uploaded, sep=",")
-else:
-    df_raw = pd.read_csv(uploaded, sep=r"\s+", engine="python")  # whitespace / auto
+# Read the bytes, decode to string, wrap in StringIO
+csv_text = uploaded.getvalue().decode("utf-8", errors="ignore")
+df_raw = pd.read_csv(io.StringIO(csv_text), sep=",")
 
+# --------------------------------------------------
+# 2. Clean column names, validate timestamp
+# --------------------------------------------------
+df_raw.columns = df_raw.columns.str.strip()
+if "timestamp" not in df_raw.columns:
+    st.error("The CSV must have a first column named **timestamp**.")
+    st.stop()
+
+# --------------------------------------------------
+# 3. Create timestamp_s (seconds as float)
+# --------------------------------------------------
+def parse_timestamp(ts_str: str | float) -> float | None:
+    """Convert m:ss.s or h:mm:ss.s to seconds (float)."""
+    try:
+        parts = str(ts_str).split(":")
+        parts = [float(p) for p in parts]
+        if len(parts) == 2:          # mm:ss
+            return parts[0] * 60 + parts[1]
+        if len(parts) == 3:          # hh:mm:ss
+            return parts[0] * 3600 + parts[1] * 60 + parts[2]
+    except Exception:
+        pass
+    return None
+
+df_raw["timestamp_s"] = df_raw["timestamp"].apply(parse_timestamp)
+
+# --------------------------------------------------
+# 4. DataFrame to plot (no grouping for now)
+# --------------------------------------------------
 df_grp = df_raw.copy()
 
+# --------------------------------------------------
+# 5. Sidebar controls
+# --------------------------------------------------
+st.sidebar.header("⚙️ Plot Settings")
 
-# ---------- 3. Basic cleaning ----------
-df = df_raw.copy()
-st.write("Detected columns:", df_raw.columns.tolist())
-
-if "timestamp" not in df.columns:
-    st.error("First column must be named **timestamp**.")
-    st.stop()
-
-Convert a m:ss.s style timestamp → seconds (float) so we can plot on numeric axis if desired
-def to_seconds(ts):
-    try:
-        m, s = ts.split(":")
-        return float(m) * 60 + float(s)
-    except Exception:
-        return np.nan
-
-if "timestamp_s" not in df.columns:
-    df["timestamp_s"] = df["timestamp"].astype(str).apply(to_seconds)
-
-#---------- 3. Choose axes & build multi-trace plot (no annotations) ---------
-import plotly.graph_objects as go
-
-# X-axis choice
 x_axis = st.sidebar.selectbox(
     "X-axis",
-    ["timestamp_s", "briq_idx"],  # timestamp in seconds OR briquette index
-    index=1
+    options=["timestamp_s", "timestamp"],
+    format_func=lambda x: "Elapsed Time (s)" if x == "timestamp_s" else "Raw Timestamp",
+    index=0
 )
 
-# Multi-select Y signals
+# Detect numeric columns (excluding helper cols)
 numeric_cols = [
     c for c in df_grp.columns
-    if df_grp[c].dtype != "object" and c not in ["timestamp_s", "briq_idx"]
+    if pd.api.types.is_numeric_dtype(df_grp[c]) and c not in ["timestamp_s"]
 ]
+
 default_signals = [c for c in numeric_cols if "Power" in c] or numeric_cols[:2]
 
-y_signals = st.multiselect(
-    "Signals to display",
+y_signals = st.sidebar.multiselect(
+    "Y-axis signals (multi-select)",
     options=numeric_cols,
     default=default_signals
 )
 
-# Build dark-theme Plotly figure
+if not y_signals:
+    st.warning("Select at least one signal.")
+    st.stop()
+
+# --------------------------------------------------
+# 6. Build dark-theme Plotly figure
+# --------------------------------------------------
 fig = go.Figure(
     layout=go.Layout(
         template="plotly_dark",
         title="Sensor Signals",
-        xaxis_title="Elapsed Time (s)" if x_axis == "timestamp_s" else "Briquette Index",
+        xaxis_title="Elapsed Time (s)" if x_axis == "timestamp_s" else "Timestamp",
         yaxis_title="Value",
-        height=500,
+        height=550,
         dragmode="zoom",
         margin=dict(l=10, r=20, t=40, b=10),
     )
@@ -122,60 +113,8 @@ for sig in y_signals:
 
 st.plotly_chart(fig, use_container_width=True)
 
-
-
-
-
-# ---------- 4. Grouping / aggregation ----------
-#st.sidebar.header("🗂 Segmentation")
-#group_size = st.sidebar.number_input("Rows per segment", min_value=1, max_value=len(df), value=1)
-#agg_func = st.sidebar.selectbox(
-    #"Aggregate function",
-    #("none", "mean", "median", "max", "min", "std"),
-    #index=0
-#)
-
-#if agg_func != "none" or group_size > 1:
-    #grouped = df.groupby(np.arange(len(df)) // group_size)
-    #df_plot = getattr(grouped, agg_func if agg_func != "none" else "first")()
-#else:
-    #df_plot = df
-
-# ---------- 5. Choose axes ----------
-#st.sidebar.header("📊 Plot controls")
-#x_axis = st.sidebar.selectbox("X-axis", ["timestamp", "timestamp_s"] + df_plot.columns.tolist(), index=0)
-#y_axis = st.sidebar.selectbox("Y-axis", df_plot.columns[1:], index=1)
-
-# ---------- 6. Plot ----------
-#fig = px.line(df_plot, x=x_axis, y=y_axis, markers=True, title=f"{y_axis} vs {x_axis}")
-#fig.update_layout(margin=dict(l=20, r=20, t=40, b=20), dragmode="zoom")
-#clicked = plotly_events(fig, click_event=True, hover_event=False, select_event=False)
-#st.plotly_chart(fig, use_container_width=True)
-
-
-
-
-
-# ---------- 7. Annotation store ----------
- #if "annotations" not in st.session_state:
-    #st.session_state.annotations = pd.DataFrame(columns=[x_axis, y_axis, "note"])
-    
-# ---------- 8. Capture click & note ----------
-
-#if clicked:
-    #pt = clicked[0]
-    #x_val, y_val = pt["x"], pt["y"]
-    #with st.form("add_note_form", clear_on_submit=True):
-        #st.markdown(f"**Add note for {x_axis} = `{x_val}` | {y_axis} = `{y_val}`**")
-        #note_text = st.text_input("Note")
-        #if st.form_submit_button("Save"):
-            #st.session_state.annotations.loc[len(st.session_state.annotations)] = [x_val, y_val, note_text]
-            #st.success("Annotation saved!")
-
-# ---------- 9. Show & download annotations ----------
-#st.subheader("📝 Annotations")
-#st.dataframe(st.session_state.annotations, use_container_width=True)
-#csv = st.session_state.annotations.to_csv(index=False).encode()
-#st.download_button("Download CSV", csv, "annotations.csv", "text/csv")
-
-
+# --------------------------------------------------
+# 7. Optional preview table (toggle)
+# --------------------------------------------------
+with st.expander("Preview data (first 5 rows)"):
+    st.dataframe(df_grp.head(), use_container_width=True)
