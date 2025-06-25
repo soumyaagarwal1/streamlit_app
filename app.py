@@ -35,7 +35,7 @@ if not uploaded:
 if delimiter == ",":
     df_raw = pd.read_csv(uploaded)
 elif delimiter == "\t":
-    df_raw = pd.read_csv(uploaded, sep="\t")
+    df_raw = pd.read_csv(uploaded, sep=",")
 else:
     df_raw = pd.read_csv(uploaded, sep=r"\s+", engine="python")  # whitespace / auto
 
