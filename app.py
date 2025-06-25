@@ -49,7 +49,9 @@ def parse_timestamp(ts_str: str | float) -> float | None:
         pass
     return None
 
-df_raw["timestamp_s"] = df_raw["timestamp"].apply(parse_timestamp)
+#df_raw["timestamp_s"] = df_raw["timestamp"].apply(parse_timestamp)
+df_raw["timestamp_s"] = df_raw["timestamp"].astype(str).apply(parse_timestamp)
+df_raw = df_raw.sort_values("timestamp_s").reset_index(drop=True)
 
 # --------------------------------------------------
 # 4. DataFrame to plot (no grouping for now)
