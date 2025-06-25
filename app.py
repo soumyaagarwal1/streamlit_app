@@ -2,6 +2,7 @@
 # app.py  •  Upload → group/aggregate → click-annotate → export
 # -----------------------------------------------------------
 import streamlit as st
+import io
 import pandas as pd
 import numpy as np
 import plotly.express as px
