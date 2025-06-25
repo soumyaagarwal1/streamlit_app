@@ -52,7 +52,7 @@ elif delimiter == "\t":
 else:
     df_raw = pd.read_csv(uploaded, sep=r"\s+", engine="python")  # whitespace / auto
 
-
+df_grp = df_raw.copy()
 # ---------- 3. Choose axes & build multi-trace plot (no annotations) ---------
 import plotly.graph_objects as go
 
