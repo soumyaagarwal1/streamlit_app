@@ -18,6 +18,15 @@ uploaded = st.file_uploader(
 )
 delimiter = st.sidebar.radio("Delimiter", {",": "Comma (,)", "\t": "Tab (\\t)", "auto": "Auto/Whitespace"}, index=1)
 
+up = st.file_uploader("Upload CSV", type=["csv"])
+
+if up:
+    df_raw = pd.read_csv(up, sep=",")         # ✅ enforce comma-split
+    df_raw.columns = df_raw.columns.str.strip()  # ✅ clean col names
+    st.write("Detected columns:", df_raw.columns.tolist())
+    st.write(df_raw.head(1))                  # optional preview
+
+
 if not uploaded:
     st.info("👈 Upload a file to get started")
     st.stop()
