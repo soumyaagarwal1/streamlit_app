@@ -34,6 +34,67 @@ if "timestamp" not in df_raw.columns:
     st.stop()
 
 # --------------------------------------------------
+# 3. DataFrame to plot (no grouping for now)
+# --------------------------------------------------
+df_grp = df_raw.copy()
+
+# --------------------------------------------------
+# 4. Sidebar controls
+# --------------------------------------------------
+st.sidebar.header("⚙️ Plot Settings")
+
+# Only keep numeric columns for y-axis
+numeric_cols = [
+    c for c in df_grp.columns
+    if pd.api.types.is_numeric_dtype(df_grp[c])
+]
+
+default_signals = [c for c in numeric_cols if "Power" in c] or numeric_cols[:2]
+
+y_signals = st.sidebar.multiselect(
+    "Y-axis signals (multi-select)",
+    options=numeric_cols,
+    default=default_signals
+)
+
+if not y_signals:
+    st.warning("Select at least one signal.")
+    st.stop()
+
+# --------------------------------------------------
+# 5. Build dark-theme Plotly figure
+# --------------------------------------------------
+fig = go.Figure(
+    layout=go.Layout(
+        template="plotly_dark",
+        title="Sensor Signals",
+        xaxis_title="Timestamp",
+        yaxis_title="Value",
+        height=550,
+        dragmode="zoom",
+        margin=dict(l=10, r=20, t=40, b=10),
+    )
+)
+
+for sig in y_signals:
+    fig.add_trace(
+        go.Scatter(
+            x=df_grp["timestamp"],
+            y=df_grp[sig],
+            mode="lines",
+            name=sig,
+        )
+    )
+
+st.plotly_chart(fig, use_container_width=True)
+
+# --------------------------------------------------
+# 6. Optional preview table (toggle)
+# --------------------------------------------------
+with st.expander("Preview data (first 5 rows)"):
+    st.dataframe(df_grp.head(), use_container_width=True)
+
+# --------------------------------------------------
 # 3. Create timestamp_s (seconds as float)
 # --------------------------------------------------
 # def parse_timestamp(ts_str: str | float) -> float | None:
@@ -52,71 +113,8 @@ if "timestamp" not in df_raw.columns:
 #df_raw["timestamp_s"] = df_raw["timestamp"].apply(parse_timestamp)
 #df_raw["timestamp_s"] = df_raw["timestamp"].astype(str).apply(parse_timestamp)
 #df_raw = df_raw.sort_values("timestamp_s").reset_index(drop=True)
-st.dataframe(df_raw.head(5)) 
-# --------------------------------------------------
-# 4. DataFrame to plot (no grouping for now)
-# --------------------------------------------------
-df_grp = df_raw.copy()
 
-# --------------------------------------------------
-# 5. Sidebar controls
-# --------------------------------------------------
-st.sidebar.header("⚙️ Plot Settings")
 
-x_axis = st.sidebar.selectbox(
-    "X-axis",
-    options=["timestamp_s", "timestamp"],
-    format_func=lambda x: "Elapsed Time (s)" if x == "timestamp_s" else "Raw Timestamp",
-    index=0
-)
 
-# Detect numeric columns (excluding helper cols)
-numeric_cols = [
-    c for c in df_grp.columns
-    if pd.api.types.is_numeric_dtype(df_grp[c]) and c not in ["timestamp_s"]
-]
 
-default_signals = [c for c in numeric_cols if "Power" in c] or numeric_cols[:2]
 
-y_signals = st.sidebar.multiselect(
-    "Y-axis signals (multi-select)",
-    options=numeric_cols,
-    default=default_signals
-)
-
-if not y_signals:
-    st.warning("Select at least one signal.")
-    st.stop()
-
-# --------------------------------------------------
-# 6. Build dark-theme Plotly figure
-# --------------------------------------------------
-fig = go.Figure(
-    layout=go.Layout(
-        template="plotly_dark",
-        title="Sensor Signals",
-        xaxis_title="Elapsed Time (s)" if x_axis == "timestamp_s" else "Timestamp",
-        yaxis_title="Value",
-        height=550,
-        dragmode="zoom",
-        margin=dict(l=10, r=20, t=40, b=10),
-    )
-)
-
-for sig in y_signals:
-    fig.add_trace(
-        go.Scatter(
-            x=df_grp[x_axis],
-            y=df_grp[sig],
-            mode="lines",
-            name=sig,
-        )
-    )
-
-st.plotly_chart(fig, use_container_width=True)
-
-# --------------------------------------------------
-# 7. Optional preview table (toggle)
-# --------------------------------------------------
-with st.expander("Preview data (first 5 rows)"):
-    st.dataframe(df_grp.head(), use_container_width=True)
