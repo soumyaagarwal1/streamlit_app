@@ -96,8 +96,10 @@ for sig in y_signals:
                 x=df_grp["timestamp"],
                 y=df_grp[sig],
                 name=sig,
+                 marker=dict(color='rgba(135, 206, 250, 0.8)'),
             )
         )
+        
 
 st.plotly_chart(fig, use_container_width=True)
 
