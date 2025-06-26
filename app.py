@@ -61,9 +61,13 @@ if not y_signals:
     st.warning("Select at least one signal.")
     st.stop()
 
+
+
 # --------------------------------------------------
 # 5. Build dark-theme Plotly figure
 # --------------------------------------------------
+chart_type = st.sidebar.radio("Chart type", ["Line", "Bar"], index=0)
+
 fig = go.Figure(
     layout=go.Layout(
         template="plotly_dark",
@@ -75,19 +79,28 @@ fig = go.Figure(
         margin=dict(l=10, r=20, t=40, b=10),
     )
 )
+
 for sig in y_signals:
-    fig.add_trace(
-        go.Scatter(
-            x=df_grp[x_axis],
-            y=df_grp[sig],
-            mode="lines",
-            name=sig,
+    if chart_type == "Line":
+        fig.add_trace(
+            go.Scatter(
+                x=df_grp["timestamp"],   # <-- hard-coded X-axis
+                y=df_grp[sig],
+                mode="lines",
+                name=sig,
+            )
         )
-    )
-
-
+    else:  # Bar chart
+        fig.add_trace(
+            go.Bar(
+                x=df_grp["timestamp"],
+                y=df_grp[sig],
+                name=sig,
+            )
+        )
 
 st.plotly_chart(fig, use_container_width=True)
+
 
 # --------------------------------------------------
 # 6. Optional preview table (toggle)
