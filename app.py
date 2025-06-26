@@ -34,19 +34,14 @@ if "timestamp" not in df_raw.columns:
     st.stop()
 
 # --------------------------------------------------
-# 3. DataFrame to plot (no grouping for now)
-# --------------------------------------------------
-df_grp = df_raw.copy()
-
-# --------------------------------------------------
 # 4. Sidebar controls
 # --------------------------------------------------
 st.sidebar.header("⚙️ Plot Settings")
 
 # Only keep numeric columns for y-axis
 numeric_cols = [
-    c for c in df_grp.columns
-    if pd.api.types.is_numeric_dtype(df_grp[c])
+    c for c in df_raw.columns
+    if pd.api.types.is_numeric_dtype(df_raw[c])
 ]
 
 default_signals = [c for c in numeric_cols if "Power" in c] or numeric_cols[:2]
@@ -61,12 +56,10 @@ if not y_signals:
     st.warning("Select at least one signal.")
     st.stop()
 
-
-
 # --------------------------------------------------
 # 5. Build dark-theme Plotly figure
 # --------------------------------------------------
-chart_type = st.sidebar.radio("Chart type", ["Line", "Bar"], index=0)
+#chart_type = st.sidebar.radio("Chart type", ["Line", "Bar"], index=0)
 
 fig = go.Figure(
     layout=go.Layout(
@@ -81,34 +74,25 @@ fig = go.Figure(
 )
 
 for sig in y_signals:
-    if chart_type == "Line":
-        fig.add_trace(
-            go.Scatter(
-                x=df_grp["timestamp"],   # <-- hard-coded X-axis
-                y=df_grp[sig],
-                mode="lines",
-                name=sig,
-            )
+    #if chart_type == "Line":
+    fig.add_trace(
+        go.Scatter(
+            x=df_raw["timestamp"],   # <-- hard-coded X-axis
+            y=df_raw[sig],
+            mode="lines",
+            name=sig,
         )
-    else:  # Bar chart
-        fig.add_trace(
-            go.Bar(
-                x=df_grp["timestamp"],
-                y=df_grp[sig],
-                name=sig,
-                 marker=dict(color='rgba(135, 206, 250, 0.8)'),
-            )
-        )
-        
+    )
+ 
 
 st.plotly_chart(fig, use_container_width=True)
-
+st.line_chart(df_raw.set_index("Timestamp")[["MW1ReflectPower", "MW2ReflectPower"]])
 
 # --------------------------------------------------
 # 6. Optional preview table (toggle)
 # --------------------------------------------------
 with st.expander("Preview data (first 5 rows)"):
-    st.dataframe(df_grp.head(), use_container_width=True)
+    st.dataframe(df_raw.head(), use_container_width=True)
 
 # --------------------------------------------------
 # 3. Create timestamp_s (seconds as float)
