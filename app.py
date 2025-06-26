@@ -24,7 +24,7 @@ if not uploaded:
 # Read the bytes, decode to string, wrap in StringIO
 csv_text = uploaded.getvalue().decode("utf-8", errors="ignore")
 df_raw = pd.read_csv(io.StringIO(csv_text), sep=",")
-df.head(5) # display table
+df_raw.head(5) # display table
 # --------------------------------------------------
 # 2. Clean column names, validate timestamp
 # --------------------------------------------------
@@ -48,11 +48,11 @@ def parse_timestamp(ts_str: str | float) -> float | None:
     except Exception:
         pass
     return None
-df.head(5)
+df_raw.head(5)
 #df_raw["timestamp_s"] = df_raw["timestamp"].apply(parse_timestamp)
 df_raw["timestamp_s"] = df_raw["timestamp"].astype(str).apply(parse_timestamp)
 df_raw = df_raw.sort_values("timestamp_s").reset_index(drop=True)
-df.head(5)
+df_raw.head(5)
 # --------------------------------------------------
 # 4. DataFrame to plot (no grouping for now)
 # --------------------------------------------------
