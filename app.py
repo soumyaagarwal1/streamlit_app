@@ -75,16 +75,17 @@ fig = go.Figure(
         margin=dict(l=10, r=20, t=40, b=10),
     )
 )
-
 for sig in y_signals:
     fig.add_trace(
         go.Scatter(
-            x=df_grp["timestamp"],
+            x=df_grp[x_axis],
             y=df_grp[sig],
             mode="lines",
             name=sig,
         )
     )
+
+
 
 st.plotly_chart(fig, use_container_width=True)
 
