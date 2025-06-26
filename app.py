@@ -36,8 +36,9 @@ if "timestamp" not in df_raw.columns:
 # --------------------------------------------------
 # 3. Create timestamp_s (seconds as float)
 # --------------------------------------------------
-def parse_timestamp(ts_str: str | float) -> float | None:
-    """Convert m:ss.s or h:mm:ss.s to seconds (float)."""
+ '''def parse_timestamp(ts_str: str | float) -> float | None:
+    """Convert m:ss.s or h:mm:ss.s to seconds (float).
+    """
     try:
         parts = str(ts_str).split(":")
         parts = [float(p) for p in parts]
@@ -52,7 +53,7 @@ st.dataframe(df_raw.head(5))
 #df_raw["timestamp_s"] = df_raw["timestamp"].apply(parse_timestamp)
 df_raw["timestamp_s"] = df_raw["timestamp"].astype(str).apply(parse_timestamp)
 df_raw = df_raw.sort_values("timestamp_s").reset_index(drop=True)
-st.dataframe(df_raw.head(5)) 
+st.dataframe(df_raw.head(5)) '''
 # --------------------------------------------------
 # 4. DataFrame to plot (no grouping for now)
 # --------------------------------------------------
